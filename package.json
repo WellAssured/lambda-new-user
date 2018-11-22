@@ -1,23 +1,14 @@
 {
-  "name": "lambda-mailing-list",
+  "name": "lambda-new-user",
   "version": "1.0.0",
-  "description": "Lambda function to interact with Mailchimp API",
+  "description": "Lambda function triggered by a Cognito New User event.",
   "main": "index.js",
   "scripts": {
-    "zip": "zip -r ../lambda-mailing-list.zip index.js package.json node_modules"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/WellAssured/lambda-mailing-list.git"
+    "zip": "zip -r ../lambda-new-user.zip index.js package.json node_modules"
   },
   "author": "Jack White",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/WellAssured/lambda-mailing-list/issues"
-  },
-  "homepage": "https://github.com/WellAssured/lambda-mailing-list#readme",
   "dependencies": {
-    "axios": "^0.18.0",
-    "npm": "^5.7.1"
+    "aws-sdk": "^2.358.0"
   }
 }

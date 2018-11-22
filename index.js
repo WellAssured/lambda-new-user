@@ -1,50 +1,44 @@
-'use strict';
+const AWS = require('aws-sdk');
 
-const axios = require('axios');
+const sns = new AWS.SNS();
+const sqs = new AWS.SQS();
 
-exports.handler = (event, context, callback) => {
-  const mailchimpKEY = process.env.api_key;
-  const mailchimpURL = process.env.api_url;
-  const json = JSON.parse(event.body);
-  // Post new subscriber to Mailchimp. (List # and API Key are stored in Lambda Environment Variables)
-  // a status of pending indicates that we expect Mailchimp to send a verification email to the user.
-  axios.post(mailchimpURL, {
-    email_address: json.email,
-    status: "subscribed",
-    merge_fields: {
-      FNAME: json.firstName,
-      LNAME: json.lastName,
-    }
-  },{
-    auth: {
-      username: 'username',
-      password: mailchimpKEY,
-    }
-  }).then(response =>
-    callback(null, {
-      "isBase64Encoded": false,
-      "statusCode": response.status,
-      "headers": { "Access-Control-Allow-Origin": '*'},
-      "body": JSON.stringify({'response': response.status, 'responseText': response.statusText})
-    })
-  ).catch(error => {
-    if (error.response) {
-      callback(null, {
-        "isBase64Encoded": false,
-        "statusCode": error.response.status,
-        "headers": { "Access-Control-Allow-Origin": '*'},
-        "body": JSON.stringify({
-          'errorResponseStatus': error.response.status,
-          'errorResponseData': error.response.data
+exports.handler = async (event, context, callback) => {
+    if (event.triggerSource === "PostConfirmation_ConfirmSignUp") {
+        // Publish to NewUser SNS Topic
+        // event.userName, event.request.userAttributes["custom:zip"]
+        const message = `Welcome ${event.userName} to tailRD! Reported Zip Code: ${event.request.userAttributes["custom:zip"]}`;
+        sns.publish({
+            TopicArn: process.env.newuser_snstopic_arn,
+            Message: message
+        }).promise().catch((err) => console.error(err, err.stack));
+        
+        const sqsMessage = {
+            QueueUrl: process.env.sqs_url,
+            MessageBody: JSON.stringify({
+                newUser: {
+                    sub: event.request.userAttributes.sub,
+                    name: event.userName
+                }
+            }),
+            MessageAttributes: {
+                userPoolId: {
+                    DataType: "String",
+                    StringValue: event.userPoolId
+                },
+                clientId: {
+                    DataType: "String",
+                    StringValue: event.callerContext.clientId
+                }
+            }
+        };
+        sqs.sendMessage(sqsMessage, (err, data) => {
+            if (err) {
+                console.log("Error", err);
+            } else {
+                console.log("Success", data);
+            }
         })
-      });
-    } else {
-      callback({
-        "isBase64Encoded": false,
-        "statusCode": 500,
-        "headers": { "Access-Control-Allow-Origin": '*'},
-        "body": JSON.stringify({'response': error})
-      })
     }
-  });
+    callback(null, event);
 };
