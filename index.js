@@ -8,9 +8,9 @@ exports.handler = async (event, context, callback) => {
         // First, figure out which SNS Topic to publish to based on promo code (default is Lora's)
         const topicArnMap = JSON.parse(process.env.newuser_snstopic_arn_map);
         const promo = event.request.userAttributes["custom:promo"].toLowerCase();
-        let topicArn = process.env.topicArnMap['Lora'];
-        if (promo !== undefined && Object.keys(process.env.topicArnMap).includes(promo)) {
-            topicArn = process.env.topicArnMap[promo];
+        let topicArn = topicArnMap['lora'];
+        if (promo !== undefined && Object.keys(topicArnMap).includes(promo)) {
+            topicArn = topicArnMap[promo];
         }
 
         // Publish to NewUser SNS Topic
