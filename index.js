@@ -5,11 +5,19 @@ const sqs = new AWS.SQS();
 
 exports.handler = async (event, context, callback) => {
     if (event.triggerSource === "PostConfirmation_ConfirmSignUp") {
+        // First, figure out which SNS Topic to publish to based on promo code (default is Lora's)
+        const topicArnMap = JSON.parse(process.env.newuser_snstopic_arn_map);
+        const promo = event.request.userAttributes["custom:promo"].toLowerCase();
+        let topicArn = process.env.topicArnMap['Lora'];
+        if (promo !== undefined && Object.keys(process.env.topicArnMap).includes(promo)) {
+            topicArn = process.env.topicArnMap[promo];
+        }
+
         // Publish to NewUser SNS Topic
         // event.userName, event.request.userAttributes["custom:zip"]
         const message = `Welcome ${event.userName} to tailRD! Reported Zip Code: ${event.request.userAttributes["custom:zip"]}`;
         sns.publish({
-            TopicArn: process.env.newuser_snstopic_arn,
+            TopicArn: topicArn,
             Message: message
         }).promise().catch((err) => console.error(err, err.stack));
         
@@ -18,7 +26,8 @@ exports.handler = async (event, context, callback) => {
             MessageBody: JSON.stringify({
                 newUser: {
                     sub: event.request.userAttributes.sub,
-                    name: event.userName
+                    name: event.userName,
+                    promo
                 }
             }),
             MessageAttributes: {
